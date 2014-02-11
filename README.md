@@ -5,6 +5,7 @@ Features:
 - works in background
 - it digs!
 - it eats!
+- [IT HUNGERS! FOR MORE!][https://www.youtube.com/watch?v=J9rzTPjmLNQ]
 - half-automatic key detection
 - dig time invertal (hold key down)
 - eat time invertal (based on dig time)
