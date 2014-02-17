@@ -3,7 +3,6 @@
 #include <File.au3>
 #include <MCKeys.au3>
 #include <SimulKey.au3>
-#include <Array.au3>
 
 ; REQUIRED: %appdata%\.minecraft\options.txt > pauseOnLostFocus:false
 ; Known Bugs: SimulKey will not release keyboard button on termination
@@ -11,17 +10,19 @@
 ; Supported parameters:
 ;
 ; --hidewindow=false
-; --holdtime=5000
+; --picktime=5000
+; --eattime=5000
 ; --eatfood=true
 ; --eatfoodticks=20
 ; --hotkeyfood=2
 ; --hotkeypickaxe=1
 ;
 Global $Name = "Toothpick"
-Global $Version = 1.0
+Global $Version = 1.01
 
 Global $HideWindow = False
-Global $HoldKeyTime = 5000 ; 5 seconds - controls mining & eating time
+Global $PickTime = 5000 ; 5 seconds - controls mining & eating time
+Global $EatTime = 5000
 Global $EatFoodTicks = 5
 Global $EatFood = True
 Global $HotkeyFood = 2
@@ -48,22 +49,28 @@ Func userInput()
 	For $i = $CmdLine[0] To 1 Step -1
 		ConsoleWrite("Checking user input" & @CRLF)
 		$split = StringSplit($CmdLine[$i], "=")
-		_ArrayDisplay($split)
 		Switch $split[1]
 			Case "--hidewindow"
-				If ( StringUpper($split[2] == "TRUE") ) Then
+				If ( StringUpper($split[2]) == "TRUE" ) Then
 					$HideWindow = True
 				Else
 					$HideWindow = False
 				EndIf
-			Case "--holdtime"
+			Case "--eattime"
 				If ( IsNumber(Number($split[2])) ) Then
-					$HoldKeyTime = Number($split[2])
+					$EatTime = Number($split[2])
+				EndIf
+			Case "--picktime"
+				If ( IsNumber(Number($split[2])) ) Then
+					$PickTime = Number($split[2])
 				EndIf
 			Case "--eatfood"
-				If ( StringUpper($split[2] == "TRUE") ) Then
+				ConsoleWrite("--EATFOOD EVENT" & @CRLF)
+				If ( StringUpper($split[2]) == "TRUE" ) Then
+					ConsoleWrite("--EATFOOD: TRUE" & @CRLF)
 					$EatFood = True
 				Else
+					ConsoleWrite("--EATFOOD: FALSE" & @CRLF)
 					$EatFood = False
 				EndIf
 			Case "--eatfoodticks"
@@ -90,6 +97,16 @@ EndFunc
 
 Func StartUp()
 	userInput()
+	
+	#cs
+	ConsoleWrite("HideWindow: " & $HideWindow & @CRLF)
+	ConsoleWrite("PickTime: " & $PickTime & @CRLF)
+	ConsoleWrite("EatFoodTicks: " & $EatFoodTicks & @CRLF)
+	ConsoleWrite("EatFood: " & $EatFood & @CRLF)
+	ConsoleWrite("HotkeyFood: " & $HotkeyFood & @CRLF)
+	ConsoleWrite("HotkeyPickaxe: " & $HotkeyPickaxe & @CRLF)
+	#ce
+	
 	If ( FileExists($MCPath) ) Then
 		If ( FileExists($MCPath & $MCOptions) ) Then
 			If ( DetectHotkeys($MCPath & $MCOptions) ) Then
@@ -162,7 +179,7 @@ EndFunc
 Func SendKey($key, $hold = 0)
 	If ( $key > 0 ) Then
 		if ( $hold ) Then
-			SimulKey($hWndControl, StringTrimLeft(StringTrimRight(NumberToKey($key), 1), 1), 0, "skip", $HoldKeyTime)
+			SimulKey($hWndControl, StringTrimLeft(StringTrimRight(NumberToKey($key), 1), 1), 0, "skip", $hold)
 		Else
 			ControlSend($MinecraftHandleClass, "", "", NumberToKey($key))
 		EndIf
@@ -181,7 +198,7 @@ Func SendKey($key, $hold = 0)
 		EndIf
 		_SendMessage($hWndControl, $buttonDOWN)
 		$TimerBegin = TimerInit()
-		While ( $HoldKeyTime > TimerDiff($TimerBegin) )
+		While ( $hold > TimerDiff($TimerBegin) )
 			Sleep(100)
 		WEnd
 		_SendMessage($hWndControl, $buttonUP)
@@ -190,19 +207,18 @@ EndFunc
 
 Func Loop()
 	Local $Ticks = 0
-	Local $TimerBegin, $TimerDiff
 	if ( $EatFood ) Then
 		While 1
 			Sleep(100)
 			ConsoleWrite("Mining" & @CRLF)
-			SendKey($Hotkey[0], 1)
+			SendKey($Hotkey[0], $PickTime)
 			$Ticks = 1 + $Ticks
 			ConsoleWrite("$Ticks: " & $Ticks & @CRLF)
 			If ( $Ticks > $EatFoodTicks ) Then
 				ConsoleWrite("Changing to food" & @CRLF)
 				SendKey($Hotkey[3])
 				ConsoleWrite("Eating" & @CRLF)
-				SendKey($Hotkey[1], 1)
+				SendKey($Hotkey[1], $EatTime)
 				ConsoleWrite("Changing to Pickaxe" & @CRLF)
 				SendKey($Hotkey[2])
 				$Ticks = 0
@@ -211,7 +227,8 @@ Func Loop()
 	Else
 		While 1
 			Sleep(100)
-			SendKey($Hotkey[0], 1)
+			ConsoleWrite("Mining" & @CRLF)
+			SendKey($Hotkey[0], $PickTime)
 		WEnd
 	EndIf
 EndFunc
