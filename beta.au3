@@ -10,6 +10,7 @@
 ; Supported parameters:
 ;
 ; --hidewindow=false
+; --blockinput=false
 ; --picktime=5000
 ; --eattime=5000
 ; --eatfood=true
@@ -18,9 +19,10 @@
 ; --hotkeypickaxe=1
 ;
 Global $Name = "Toothpick"
-Global $Version = 1.01
+Global $Version = 1.02
 
 Global $HideWindow = False
+Global $BlockInput = False
 Global $PickTime = 5000 ; 5 seconds - controls mining & eating time
 Global $EatTime = 5000
 Global $EatFoodTicks = 5
@@ -55,6 +57,12 @@ Func userInput()
 					$HideWindow = True
 				Else
 					$HideWindow = False
+				EndIf
+			Case "--blockinput"
+				If ( StringUpper($split[2]) == "TRUE" ) Then
+					$BlockInput = True
+				Else
+					$BlockInput = False
 				EndIf
 			Case "--eattime"
 				If ( IsNumber(Number($split[2])) ) Then
@@ -113,6 +121,9 @@ Func StartUp()
 				If WinExists($MinecraftHandleClass) Then
 					$WindowTitle = WinGetTitle($MinecraftHandleClass)
 					WinSetTitle($MinecraftHandleClass, "", $Name & " v." & $Version & " - " & $WindowTitle)
+					If ( $BlockInput ) Then
+						WinSetState($MinecraftHandleClass, "", @SW_DISABLE)
+					EndIf
 					If ( $HideWindow ) Then
 						WinSetState($MinecraftHandleClass, "", @SW_HIDE)
 						WinSetState($MinecraftHandleClass, "", @SW_DISABLE)
@@ -241,6 +252,9 @@ Func Terminate()
 	_SendMessage($hWndControl, $buttonUP)
 	; Restore original title
 	WinSetTitle($MinecraftHandleClass, "", $WindowTitle)
+	If ( $BlockInput ) Then
+		WinSetState($MinecraftHandleClass, "", @SW_ENABLE)
+	EndIf
 	If ( $HideWindow ) Then
 		WinSetState($MinecraftHandleClass, "", @SW_ENABLE)
 		WinSetState($MinecraftHandleClass, "", @SW_SHOW)
